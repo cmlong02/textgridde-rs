@@ -1,10 +1,11 @@
-use std::{io::Read, path::PathBuf};
+use std::{fs::File, io::Read, path::PathBuf};
 
 pub enum Source {
     Path(PathBuf),
     String(String),
     StringVector(Vec<String>),
     Stream(Box<dyn Read>),
+    File(File),
 }
 
 impl From<PathBuf> for Source {
@@ -45,5 +46,11 @@ impl From<Vec<&str>> for Source {
 impl From<Box<dyn Read>> for Source {
     fn from(stream: Box<dyn Read>) -> Self {
         Self::Stream(stream)
+    }
+}
+
+impl From<File> for Source {
+    fn from(file: File) -> Self {
+        Self::File(file)
     }
 }
