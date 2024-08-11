@@ -2,7 +2,7 @@
 name = "textgridde-rs"
 version = "0.1.0"
 edition = "2021"
-description = "A library for dealing with Praat TextGrid files."
+description = "A library for dealing with Praat TextGrid files. MIT licensed."
 authors = ["Caleb Long <cmlong02@outlook.com>"]
 license = "MIT"
 repository = "https://github.com/cmlong02/texgridde"
