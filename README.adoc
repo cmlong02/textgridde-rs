@@ -13,18 +13,21 @@ fn main() {
     
     for tier in textgrid.get_tiers() {
         println!("Tier name: {}", tier.name());
-        for interval in tier.get_intervals() {
-            println!("Interval: {:?}", interval);
+        match tier {
+            Tier::IntervalTier(interval_tier) => {
+                for interval in interval_tier.get_intervals() {
+                    println!("Interval: {:?}", interval);
+                }
+            },
+            Tier::PointTier(point_tier) => {
+                for point in point_tier.get_points() {
+                    println!("Point: {:?}", point);
+                }
+            }
         }
     }
 }
 ```
-
-== Todo
-* tests
-* documentation
-* make fields private
-* make example.rs, point to it above
 
 == License
 

@@ -1,9 +1,12 @@
-use std::cmp::Ordering;
+use std::{
+    cmp::Ordering,
+    fmt::{self, Display, Formatter},
+};
 
 use derive_more::Constructor;
 use getset::{Getters, Setters};
 
-#[derive(Constructor, Debug, Getters, Setters)]
+#[derive(Constructor, Debug, Default, Clone, Getters, Setters)]
 pub struct Point {
     #[getset(get = "pub", set = "pub")]
     number: f64,
@@ -11,8 +14,14 @@ pub struct Point {
     mark: String,
 }
 
+impl Display for Point {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        writeln!(f, "Point:\t{}\t{}", self.number, self.mark)
+    }
+}
+
 /// Represents a point tier in a `TextGrid`.
-#[derive(Constructor, Debug, Getters, Setters)]
+#[derive(Clone, Constructor, Debug, Default, Getters, Setters)]
 pub struct Tier {
     #[getset(get = "pub", set = "pub")]
     name: String,
@@ -82,11 +91,13 @@ impl Tier {
         self.points.len()
     }
 
-    #[must_use]
-    pub const fn get_points(&self) -> &Vec<Point> {
-        &self.points
-    }
-
+    /// Pushes a point to the tier.
+    /// Calls `reorder()` to ensure the points are sorted by their number after pushing.
+    ///
+    /// # Arguments
+    ///
+    /// * `point` - The point to push.
+    /// * `warn` - Whether to warn if the point is outside the tier's bounds.
     pub fn push_point<W: Into<Option<bool>> + Copy>(&mut self, point: Point, warn: W) {
         if warn.into().unwrap_or_default() {
             if point.number < self.xmin {
@@ -102,7 +113,40 @@ impl Tier {
                 );
             }
         }
+
         self.points.push(point);
+
+        self.reorder();
+    }
+
+    /// Pushes multiple points to the tier by calling `push_point()` for each point.
+    /// Calls `reorder()` to ensure the points are sorted by their number after pushing.
+    ///
+    /// # Arguments
+    ///
+    /// * `points` - The points to push.
+    /// * `warn` - Whether to warn if the point is outside the tier's bounds.
+    pub fn push_points<W: Into<Option<bool>> + Copy>(&mut self, points: Vec<Point>, warn: W) {
+        if warn.into().unwrap_or_default() {
+            for point in &points {
+                if point.number < self.xmin {
+                    eprintln!(
+                        "Warning: Tier `{}` has a number of {} but the tier has an xmin of  {}",
+                        self.name, point.number, self.xmin
+                    );
+                }
+                if point.number > self.xmax {
+                    eprintln!(
+                        "Warning: Tier `{}` has a number of {} but the tier has an xmax of {}",
+                        self.name, point.number, self.xmax
+                    );
+                }
+            }
+        }
+
+        self.points.extend(points);
+
+        self.reorder();
     }
 
     /// Checks for overlaps in the tier.
@@ -126,5 +170,122 @@ impl Tier {
         } else {
             Some(overlaps)
         }
+    }
+
+    /// Reorders the points in the tier by their number.
+    pub fn reorder(&mut self) {
+        self.points
+            .sort_by(|a, b| a.number.partial_cmp(&b.number).unwrap_or(Ordering::Equal));
+    }
+}
+
+impl Display for Tier {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(
+            f,
+            "PointTier {}:
+                xmin:  {}
+                xmax:  {}
+                point count: {}",
+            self.name,
+            self.xmin,
+            self.xmax,
+            self.points.len()
+        )
+    }
+}
+
+#[cfg(test)]
+#[allow(clippy::float_cmp)]
+mod test_point {
+    #[test]
+    fn test_point() {
+        use crate::point::Point;
+
+        let point = Point::new(1.0, "test".to_string());
+        assert_eq!(point.number(), &1.0);
+        assert_eq!(point.mark(), "test");
+        assert_eq!(point.to_string(), "Point:\t1\ttest\n");
+    }
+}
+
+#[cfg(test)]
+#[allow(clippy::float_cmp)]
+mod test_point_tier {
+    #[test]
+    fn set_xmin() {
+        use crate::point::Tier;
+
+        let mut tier = Tier::new("test".to_string(), 0.0, 10.0, vec![]);
+        tier.set_xmin(5.0, Some(true));
+        assert_eq!(tier.xmin(), &5.0);
+    }
+
+    #[test]
+    fn set_xmax() {
+        use crate::point::Tier;
+
+        let mut tier = Tier::new("test".to_string(), 0.0, 10.0, vec![]);
+        tier.set_xmax(5.0, Some(true));
+        assert_eq!(tier.xmax(), &5.0);
+    }
+
+    #[test]
+    fn get_size() {
+        use crate::point::Tier;
+
+        let tier = Tier::new("test".to_string(), 0.0, 10.0, vec![]);
+        assert_eq!(tier.get_size(), 0);
+    }
+
+    #[test]
+    fn push_point() {
+        use crate::point::{Point, Tier};
+
+        let mut tier = Tier::new("test".to_string(), 0.0, 10.0, vec![]);
+        tier.push_point(Point::new(5.0, "test".to_string()), true);
+        assert_eq!(tier.get_size(), 1);
+    }
+
+    #[test]
+    fn push_points() {
+        use crate::point::{Point, Tier};
+
+        let mut tier = Tier::new("test".to_string(), 0.0, 10.0, vec![]);
+        tier.push_points(vec![Point::new(5.0, "test".to_string())], true);
+        assert_eq!(tier.get_size(), 1);
+    }
+
+    #[test]
+    fn check_overlaps() {
+        use crate::point::{Point, Tier};
+
+        let mut tier = Tier::new("test".to_string(), 0.0, 10.0, vec![]);
+        tier.push_points(
+            vec![
+                Point::new(5.0, "test".to_string()),
+                Point::new(5.0, "test".to_string()),
+            ],
+            true,
+        );
+        assert_eq!(tier.check_overlaps(), Some(vec![(0, 1), (1, 0)]));
+    }
+
+    #[test]
+    fn reorder() {
+        use crate::point::{Point, Tier};
+
+        let mut tier = Tier::new(
+            "test".to_string(),
+            0.0,
+            10.0,
+            vec![
+                Point::new(5.0, "test".to_string()),
+                Point::new(3.0, "test".to_string()),
+            ],
+        );
+        tier.reorder();
+        assert_eq!(tier.points()[0].number(), &3.0);
+        assert_eq!(tier.points()[1].number(), &5.0);
     }
 }

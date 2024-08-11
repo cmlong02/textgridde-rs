@@ -5,9 +5,7 @@
 
 use std::{
     collections::VecDeque,
-    fs::File,
-    io::{BufRead, BufReader, Error, ErrorKind, Read, Result},
-    path::PathBuf,
+    io::{Error, ErrorKind, Result},
 };
 
 mod input;
@@ -20,6 +18,7 @@ use input::Source;
 use interval::{Interval, Tier as IntervalTier};
 use point::{Point, Tier as PointTier};
 use textgrid::{TextGrid, Tier};
+use utilities::get_file_content;
 
 /// Parses a Praat `.TextGrid` file into a `textgridde::Textgrid` struct.
 ///
@@ -145,6 +144,18 @@ fn verify_start_of_textgrid(textgrid_data: &mut VecDeque<String>) -> Result<&mut
     Ok(textgrid_data)
 }
 
+/// Parses tiers from a `TextGrid` file.
+///
+/// # Arguments
+///
+/// * `data` - A mutable reference to a `VecDeque<String>` containing the lines of a `TextGrid` file.
+/// * `tg_xmin` - The `xmin` value of the `TextGrid`.
+/// * `tg_xmax` - The `xmax` value of the `TextGrid`.
+/// * `warn` - An optional boolean indicating whether to print warnings.
+///
+/// # Returns
+///
+/// A `Result` containing a vector of `textgridde::Tier` structs if successful, or an `std::io::Error` if parsing failed.
 fn parse_tiers<W: Into<Option<bool>> + Copy>(
     data: &mut VecDeque<String>,
     tg_xmin: f64,
@@ -248,6 +259,15 @@ fn parse_tiers<W: Into<Option<bool>> + Copy>(
     Ok(tiers)
 }
 
+/// Parses an `Interval` from a `TextGrid` file.
+///
+/// # Arguments
+///
+/// * `data` - A mutable reference to a `VecDeque<String>` containing the lines of a `TextGrid` file.
+///
+/// # Returns
+///
+/// A `Result` containing an `Interval` struct if successful, or an `std::io::Error` if parsing failed.
 fn parse_interval(data: &mut VecDeque<String>) -> Result<Interval> {
     let xmin = utilities::pull_next_number::<f64>(data)?;
     let xmax = utilities::pull_next_number::<f64>(data)?;
@@ -256,6 +276,15 @@ fn parse_interval(data: &mut VecDeque<String>) -> Result<Interval> {
     Ok(Interval::new(xmin, xmax, text))
 }
 
+/// Parses a `Point` from a `TextGrid` file.
+///
+/// # Arguments
+///
+/// * `data` - A mutable reference to a `VecDeque<String>` containing the lines of a `TextGrid` file.
+///
+/// # Returns
+///
+/// A `Result` containing a `Point` struct if successful, or an `std::io::Error` if parsing failed.
 fn parse_point(data: &mut VecDeque<String>) -> Result<Point> {
     let number = utilities::pull_next_number::<f64>(data)?;
     let mark = data.pop_front().unwrap_or_default();
@@ -263,59 +292,162 @@ fn parse_point(data: &mut VecDeque<String>) -> Result<Point> {
     Ok(Point::new(number, mark))
 }
 
-fn get_file_content(source: Source) -> Result<(Vec<String>, String)> {
-    match source {
-        Source::Path(path) => {
-            let mut file = File::open(path.clone())?;
+#[cfg(test)]
+mod test {
+    use std::collections::VecDeque;
 
-            let mut content_joined = String::default();
-            file.read_to_string(&mut content_joined)?;
-            let content = content_joined
-                .split('\n')
-                .map(std::string::ToString::to_string)
-                .collect::<Vec<String>>();
+    use crate::input::Source;
 
-            let name = path
-                .file_name()
-                .unwrap_or_default()
-                .to_str()
-                .unwrap_or_default()
-                .into();
+    use super::parse_textgrid;
 
-            Ok((content, name))
-        }
-        Source::String(string) => {
-            if PathBuf::from(&string).is_file() {
-                return get_file_content(Source::Path(string.into()));
-            }
+    const TEXTGRID: &str = "File type = \"ooTextFile\"\nObject class = \"TextGrid\"\n\nxmin = 0\nxmax = 2.3\ntiers? <exists>\nsize = 3\nitem []:\n\titem [1]:\n\t\tclass = \"IntervalTier\"\n\t\tname = \"John\"\n\t\txmin = 0\n\t\txmax = 2.3\n\t\tintervals: size = 1\n\t\tintervals [1]:\n\t\t\txmin = 0\n\t\t\txmax = 2.3\n\t\t\ttext = \"daisy bell\"\n\titem [2]:\n\t\tclass = \"IntervalTier\"\n\t\tname = \"Kelly\"\n\t\txmin = 0\n\t\txmax = 2.3\n\t\tintervals: size = 1\n\t\tintervals [1]:\n\t\t\txmin = 0\n\t\t\txmax = 2.3\n\t\t\ttext = \"\"\n\titem [3]:\n\t\tclass = \"TextTier\"\n\t\tname = \"Bell\"\n\t\txmin = 0\n\t\txmax = 2.3\n\t\tpoints: size = 1\n\t\tpoints [1]:\n\t\t\tnumber = 1\n\t\t\tmark = \"give me your answer do\"\"\n";
 
-            let content = string
-                .split('\n')
-                .map(std::string::ToString::to_string)
-                .collect::<Vec<String>>();
+    #[test]
+    fn parse_textgrid_from_string() {
+        let parsed_textgrid = parse_textgrid(TEXTGRID, false).unwrap();
 
-            let name = "New TextGrid".to_string();
+        let tier = match &parsed_textgrid.tiers()[1] {
+            crate::textgrid::Tier::IntervalTier(tier) => tier,
+            crate::textgrid::Tier::PointTier(_) => panic!("Expected IntervalTier, got PointTier"),
+        };
 
-            Ok((content, name))
-        }
-        Source::StringVector(string_vector) => Ok((string_vector, "New TextGrid".to_string())),
-        Source::Stream(stream) => {
-            // Wrap the stream in a BufReader to use the lines method
-            let reader = BufReader::new(stream);
-            let parsed_content: Result<Vec<String>> = reader.lines().collect();
-            let content = parsed_content?;
-            let name = "New TextGrid".to_string();
+        assert_eq!(tier.name(), "Kelly");
+    }
 
-            Ok((content, name))
-        }
-        Source::File(file) => {
-            // Wrap the file in a BufReader to use the lines method
-            let reader = BufReader::new(file);
-            let parsed_content: Result<Vec<String>> = reader.lines().collect();
-            let content = parsed_content?;
-            let name = "New TextGrid".to_string();
+    #[test]
+    fn parse_textgrid_from_path() {
+        let parsed_textgrid = parse_textgrid("example/long.TextGrid", false).unwrap();
 
-            Ok((content, name))
-        }
+        let tier = match &parsed_textgrid.tiers()[1] {
+            crate::textgrid::Tier::IntervalTier(tier) => tier,
+            crate::textgrid::Tier::PointTier(_) => panic!("Expected IntervalTier, got PointTier"),
+        };
+
+        assert_eq!(tier.name(), "Kelly");
+    }
+
+    #[test]
+    fn parse_textgrid_from_vector() {
+        let textgrid_vector = TEXTGRID
+            .split('\n')
+            .map(std::string::ToString::to_string)
+            .collect::<Vec<String>>();
+
+        let parsed_textgrid = parse_textgrid(textgrid_vector, false).unwrap();
+
+        let tier = match &parsed_textgrid.tiers()[1] {
+            crate::textgrid::Tier::IntervalTier(tier) => tier,
+            crate::textgrid::Tier::PointTier(_) => panic!("Expected IntervalTier, got PointTier"),
+        };
+
+        assert_eq!(tier.name(), "Kelly");
+    }
+
+    #[test]
+    fn parse_textgrid_from_stream() {
+        let textgrid_stream = TEXTGRID.as_bytes();
+
+        let parsed_textgrid =
+            parse_textgrid(Source::Stream(Box::new(textgrid_stream)), false).unwrap();
+
+        let tier = match &parsed_textgrid.tiers()[1] {
+            crate::textgrid::Tier::IntervalTier(tier) => tier,
+            crate::textgrid::Tier::PointTier(_) => panic!("Expected IntervalTier, got PointTier"),
+        };
+
+        assert_eq!(tier.name(), "Kelly");
+    }
+
+    #[test]
+    fn parse_textgrid_from_file() {
+        let textgrid_file = std::fs::File::open("example/long.TextGrid").unwrap();
+
+        let parsed_textgrid = parse_textgrid(textgrid_file, false).unwrap();
+
+        let tier = match &parsed_textgrid.tiers()[1] {
+            crate::textgrid::Tier::IntervalTier(tier) => tier,
+            crate::textgrid::Tier::PointTier(_) => panic!("Expected IntervalTier, got PointTier"),
+        };
+
+        assert_eq!(tier.name(), "Kelly");
+    }
+
+    #[test]
+    fn parse_textgrid_from_invalid_string() {
+        let parsed_textgrid = parse_textgrid("invalid", false);
+
+        assert!(parsed_textgrid.is_err());
+    }
+
+    #[test]
+    fn verify_start_of_textgrid() {
+        let mut textgrid_data = VecDeque::new();
+        textgrid_data.push_back("ooTextFile".to_string());
+        textgrid_data.push_back("TextGrid".to_string());
+
+        let verified_textgrid_data = super::verify_start_of_textgrid(&mut textgrid_data);
+
+        assert!(verified_textgrid_data.is_ok());
+    }
+
+    #[test]
+    fn parse_tiers() {
+        let mut tier_data = VecDeque::new();
+        tier_data.push_back("3".to_string());
+        tier_data.push_back("IntervalTier".to_string());
+        tier_data.push_back("John".to_string());
+        tier_data.push_back("0".to_string());
+        tier_data.push_back("2.3".to_string());
+        tier_data.push_back("1".to_string());
+        tier_data.push_back("0".to_string());
+        tier_data.push_back("2.3".to_string());
+        tier_data.push_back("daisy bell".to_string());
+        tier_data.push_back("IntervalTier".to_string());
+        tier_data.push_back("Kelly".to_string());
+        tier_data.push_back("0".to_string());
+        tier_data.push_back("2.3".to_string());
+        tier_data.push_back("1".to_string());
+        tier_data.push_back("0".to_string());
+        tier_data.push_back("2.3".to_string());
+        tier_data.push_back(String::new());
+        tier_data.push_back("TextTier".to_string());
+        tier_data.push_back("Bell".to_string());
+        tier_data.push_back("0".to_string());
+        tier_data.push_back("2.3".to_string());
+        tier_data.push_back("1".to_string());
+        tier_data.push_back("1".to_string());
+        tier_data.push_back("give me your answer do\"".to_string());
+
+        let parsed_tiers = super::parse_tiers(&mut tier_data, 0.0, 2.3, false).unwrap();
+
+        let tier = match &parsed_tiers[1] {
+            crate::textgrid::Tier::IntervalTier(tier) => tier,
+            crate::textgrid::Tier::PointTier(_) => panic!("Expected IntervalTier, got PointTier"),
+        };
+
+        assert_eq!(tier.name(), "Kelly");
+    }
+
+    #[test]
+    fn parse_interval() {
+        let mut interval_data = VecDeque::new();
+        interval_data.push_back("0".to_string());
+        interval_data.push_back("2.3".to_string());
+        interval_data.push_back("daisy bell".to_string());
+
+        let parsed_interval = super::parse_interval(&mut interval_data).unwrap();
+
+        assert_eq!(parsed_interval.text(), "daisy bell");
+    }
+
+    #[test]
+    fn parse_point() {
+        let mut point_data = VecDeque::new();
+        point_data.push_back("1".to_string());
+        point_data.push_back("give me your answer do\"".to_string());
+
+        let parsed_point = super::parse_point(&mut point_data).unwrap();
+
+        assert_eq!(parsed_point.mark(), "give me your answer do\"");
     }
 }
