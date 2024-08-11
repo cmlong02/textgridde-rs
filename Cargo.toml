@@ -7,15 +7,7 @@ authors = ["Caleb Long <cmlong02@outlook.com>"]
 license = "MIT"
 repository = "https://github.com/cmlong02/texgridde"
 readme = "README.adoc"
-keywords = [
-    "praat",
-    "textgrid",
-    "text",
-    "grid",
-    "phonetics",
-    "linguistics",
-    "file-format",
-]
+keywords = ["praat", "textgrid", "phonetics", "linguistics", "file-format"]
 categories = ["text-processing", "audio-processing", "linguistics"]
 
 [dependencies]
