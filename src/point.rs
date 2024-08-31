@@ -6,6 +6,7 @@ use std::{
 use derive_more::Constructor;
 use getset::{Getters, Setters};
 
+/// A "point," used in Praat as a specific time marker with an associated label.
 #[derive(Constructor, Debug, Default, Clone, Getters, Setters)]
 pub struct Point {
     #[getset(get = "pub", set = "pub")]

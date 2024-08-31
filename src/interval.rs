@@ -6,6 +6,7 @@ use std::{
 use derive_more::Constructor;
 use getset::{Getters, Setters};
 
+/// An "interval," used in Praat as a specific period of time with an associated label.
 #[derive(Clone, Constructor, Debug, Default, Getters, Setters)]
 pub struct Interval {
     #[getset(get = "pub")]
