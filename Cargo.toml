@@ -14,3 +14,4 @@ categories = ["text-processing", "parsing"]
 regex = "^1"
 getset = "^0.1"
 derive_more = "^0.99"
+encoding_rs = "0.8.35"
