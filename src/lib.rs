@@ -49,7 +49,7 @@ where
 {
     let input_source: Source = input.into();
 
-    let (mut content, name) = get_file_content(input_source)?;
+    let (mut content, name) = get_file_content(input_source, None)?;
 
     // Clean up the content by removing empty or whitespace-only lines
     content.retain(|s| !s.trim().is_empty());
