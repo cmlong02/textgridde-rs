@@ -25,7 +25,7 @@ item []:
 		intervals [1]:
 			xmin = 0
 			xmax = 2.3
-			text = ""
+			text = "" ! comment test
 	item [3]:
 		class = "TextTier"
 		name = "Bell"
