@@ -674,13 +674,16 @@ mod test_textgrid {
         let cwd = env::current_dir();
         assert!(cwd.is_ok());
 
-        let long_out = get_file_content(Source::String(
-            cwd.unwrap()
-                .join("example/long.TextGrid")
-                .to_str()
-                .unwrap()
-                .into(),
-        ))
+        let long_out = get_file_content(
+            Source::String(
+                cwd.unwrap()
+                    .join("example/long.TextGrid")
+                    .to_str()
+                    .unwrap()
+                    .into(),
+            ),
+            None,
+        )
         .unwrap();
 
         let mut textgrid = TextGrid::new(0.0, 2.3, Vec::new(), "test".to_string());
@@ -730,13 +733,16 @@ mod test_textgrid {
         let cwd = env::current_dir();
         assert!(cwd.is_ok());
 
-        let short_out = get_file_content(Source::String(
-            cwd.unwrap()
-                .join("example/short.TextGrid")
-                .to_str()
-                .unwrap()
-                .into(),
-        ))
+        let short_out = get_file_content(
+            Source::String(
+                cwd.unwrap()
+                    .join("example/short.TextGrid")
+                    .to_str()
+                    .unwrap()
+                    .into(),
+            ),
+            None,
+        )
         .unwrap();
 
         let mut textgrid = TextGrid::new(0.0, 2.3, Vec::new(), "test".to_string());
