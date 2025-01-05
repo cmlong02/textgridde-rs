@@ -14,11 +14,10 @@ pub mod point;
 pub mod textgrid;
 mod utilities;
 
-use input::Source;
+use input::{get_file_content, Source};
 use interval::{Interval, Tier as IntervalTier};
 use point::{Point, Tier as PointTier};
 use textgrid::{TextGrid, Tier};
-use utilities::get_file_content;
 
 /// Parses a Praat `.TextGrid` file into a `textgridde::Textgrid` struct.
 ///
