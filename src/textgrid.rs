@@ -6,7 +6,7 @@ use std::{
 };
 
 use derive_more::Constructor;
-use getset::{Getters, Setters};
+use getset::{Getters, MutGetters, Setters};
 
 use crate::{interval::Tier as IntervalTier, parse_textgrid, point::Tier as PointTier};
 
@@ -66,7 +66,7 @@ pub enum OutputFormat {
     Short,
 }
 
-#[derive(Clone, Constructor, Debug, Default, Getters, Setters)]
+#[derive(Clone, Constructor, Debug, Default, Getters, MutGetters, Setters)]
 /// Represents a `TextGrid`, which is a data structure used in the linguistic research program Praat
 /// to annotate speech data. It can support either
 pub struct TextGrid {
@@ -74,7 +74,7 @@ pub struct TextGrid {
     xmin: f64,
     #[getset(get = "pub")]
     xmax: f64,
-    #[getset(get = "pub")]
+    #[getset(get = "pub", get_mut = "pub")]
     tiers: Vec<Tier>,
     #[getset(get = "pub", set = "pub")]
     name: String,
