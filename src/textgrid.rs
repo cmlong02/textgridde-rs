@@ -11,7 +11,7 @@ use getset::{Getters, MutGetters, Setters};
 use crate::{interval::Tier as IntervalTier, parse_textgrid, point::Tier as PointTier};
 
 /// Represents a tier in a `TextGrid`.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Tier {
     IntervalTier(IntervalTier),
     PointTier(PointTier),
@@ -66,9 +66,9 @@ pub enum OutputFormat {
     Short,
 }
 
-#[derive(Clone, Constructor, Debug, Default, Getters, MutGetters, Setters)]
 /// Represents a `TextGrid`, which is a data structure used in the linguistic research program Praat
 /// to annotate speech data. It can support either
+#[derive(Clone, Constructor, Debug, Default, Getters, MutGetters, Setters)]
 pub struct TextGrid {
     #[getset(get = "pub")]
     xmin: f64,

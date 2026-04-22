@@ -7,7 +7,7 @@ use derive_more::Constructor;
 use getset::{Getters, MutGetters, Setters};
 
 /// A "point," used in Praat as a specific time marker with an associated label.
-#[derive(Constructor, Debug, Default, Clone, Getters, Setters)]
+#[derive(Constructor, Debug, Default, Clone, Getters, Setters, PartialEq)]
 pub struct Point {
     #[getset(get = "pub", set = "pub")]
     number: f64,
@@ -22,7 +22,7 @@ impl Display for Point {
 }
 
 /// Represents a point tier in a `TextGrid`.
-#[derive(Clone, Constructor, Debug, Default, Getters, MutGetters, Setters)]
+#[derive(Clone, Constructor, Debug, Default, Getters, MutGetters, Setters, PartialEq)]
 pub struct Tier {
     #[getset(get = "pub", set = "pub")]
     name: String,

@@ -7,7 +7,7 @@ use derive_more::Constructor;
 use getset::{Getters, MutGetters, Setters};
 
 /// An "interval," used in Praat as a specific period of time with an associated label.
-#[derive(Clone, Constructor, Debug, Default, Getters, Setters)]
+#[derive(Clone, Constructor, Debug, Default, Getters, Setters, PartialEq)]
 pub struct Interval {
     #[getset(get = "pub")]
     xmin: f64,
@@ -60,7 +60,7 @@ impl Display for Interval {
 }
 
 /// Represents an interval tier in a `TextGrid`.
-#[derive(Clone, Constructor, Debug, Default, Getters, MutGetters, Setters)]
+#[derive(Clone, Constructor, Debug, Default, Getters, MutGetters, Setters, PartialEq)]
 pub struct Tier {
     #[getset(get = "pub", set = "pub")]
     name: String,
